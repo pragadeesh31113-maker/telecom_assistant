@@ -26,10 +26,10 @@ def classify_query(state: TelecomAssistantState) -> TelecomAssistantState:
         classification = "billing_account"
     elif any(word in query for word in ["plan", "recommend", "best", "upgrade", "family", "switch"]):
         classification = "service_recommendation"
+    elif any(word in query for word in ["configure", "setup", "apn", "volte", "roaming", "troubleshoot", "guide"]):
+        classification = "knowledge_retrieval"
     elif any(word in query for word in ["network", "signal", "connection", "call", "data", "slow", "internet", "5g", "4g"]):
         classification = "network_troubleshooting"
-    elif any(word in query for word in ["how", "what", "configure", "setup", "apn", "volte", "roaming"]):
-        classification = "knowledge_retrieval"
         
     return {**state, "classification": classification}
 
