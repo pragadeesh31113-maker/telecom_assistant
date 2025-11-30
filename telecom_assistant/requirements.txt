@@ -1,0 +1,16 @@
+
+streamlit
+pandas
+crewai
+pyautogen
+langchain
+langchain-community
+langchain-openai
+llama-index
+llama-index-core
+llama-index-llms-openai
+langgraph
+sqlalchemy
+openai
+python-dotenv
+watchdog
