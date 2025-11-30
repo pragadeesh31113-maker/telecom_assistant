@@ -1,17 +1,26 @@
+from crewai import Agent, Task, Crew, Process
+from crewai.tools import BaseTool
+from langchain_community.tools.sql_database.tool import QuerySQLDataBaseTool
+from langchain_openai import ChatOpenAI
+from typing import Any
+
+# --- ABSOLUTE IMPORTS ---
+from utils.database import get_sql_database
+from config.config import LLM_MODEL, LLM_TEMPERATURE
 # ------------------------
 
-def execute_sql_query(query: str):
-    """
-    Executes a SQL query against the telecom database to retrieve billing or plan info.
-    Input should be a fully formed SQL query (e.g., "SELECT * FROM billing WHERE id='CUST001'").
-    """
-    try:
-        # Re-initialize db inside the tool to ensure thread safety
-        db = get_sql_database()
-        sql_tool = QuerySQLDataBaseTool(db=db)
-        return sql_tool.invoke(query)
-    except Exception as e:
-        return f"Error executing SQL: {str(e)}"
+class DatabaseQueryTool(BaseTool):
+    name: str = "Database Query Tool"
+    description: str = "Executes a SQL query against the telecom database. Input should be a fully formed SQL query."
+
+    def _run(self, query: str) -> str:
+        try:
+            # Re-initialize db inside the tool to ensure thread safety
+            db = get_sql_database()
+            sql_tool = QuerySQLDataBaseTool(db=db)
+            return sql_tool.invoke(query)
+        except Exception as e:
+            return f"Error executing SQL: {str(e)}"
 
 def create_billing_crew(customer_id: str):
     """Create and return a CrewAI crew for handling billing inquiries"""
@@ -20,11 +29,7 @@ def create_billing_crew(customer_id: str):
     llm = ChatOpenAI(model=LLM_MODEL, temperature=LLM_TEMPERATURE)
     
     # Create CrewAI Tool
-    billing_tool = Tool(
-        name="Database Query Tool",
-        func=execute_sql_query,
-        description="Executes a SQL query against the telecom database. Input should be a fully formed SQL query."
-    )
+    billing_tool = DatabaseQueryTool()
     
     billing_tools = [billing_tool]
 
