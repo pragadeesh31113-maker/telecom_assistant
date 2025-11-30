@@ -1,6 +1,6 @@
 # Telecom Service Assistant
 
-**Author:** G ANIRUDH (81383)
+**Author:** M Pragadeesh 81630
 
 ## Abstract
 This project presents Telecom Assistant, a modular AI-driven system designed to handle customer inquiries related to billing, network troubleshooting, service recommendations, and general knowledge retrieval. The assistant integrates multiple AI frameworks—CrewAI, AutoGen, LangChain, LlamaIndex, and LangGraph—to intelligently classify and route user queries to the most suitable processing engine.
