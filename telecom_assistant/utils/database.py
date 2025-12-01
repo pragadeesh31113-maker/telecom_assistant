@@ -1,7 +1,7 @@
 import sqlite3
 import os
 from langchain_community.utilities import SQLDatabase
-from config.config import DB_PATH
+from telecom_assistant.config.config import DB_PATH
 
 def get_db_connection():
     """Get a connection to the SQLite database"""
@@ -11,7 +11,9 @@ def get_db_connection():
 
 def get_sql_database():
     """Get a LangChain SQLDatabase instance"""
+    print(f"[DEBUG] Connecting to database at: {DB_PATH}")
     if not os.path.exists(DB_PATH):
+        print(f"[ERROR] Database not found at: {DB_PATH}")
         raise FileNotFoundError(f"Database not found at {DB_PATH}")
     return SQLDatabase.from_uri(f"sqlite:///{DB_PATH}")
 
@@ -105,6 +107,35 @@ def init_db():
         print("Database initialized with sample data.")
     
     conn.close()
+
+def init_user_db():
+    """Initialize the users table"""
+    if not os.path.exists(DB_PATH):
+        return
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL, -- 'Admin' or 'Customer'
+        customer_id TEXT -- Linked customer ID for 'Customer' role
+    )
+    ''')
+    
+    # Insert default admin if not exists
+    cursor.execute("SELECT count(*) FROM users WHERE username='admin'")
+    if cursor.fetchone()[0] == 0:
+        # Default password 'admin123' (hashed) - handled in auth.py usually, but for now hardcode or handle later.
+        # We will handle seed data in auth.py or here. Let's leave it empty and let auth.py handle seeding or registration.
+        pass
+
+    conn.commit()
+    conn.close()
+
 
 if __name__ == "__main__":
     init_db()

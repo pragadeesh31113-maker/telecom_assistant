@@ -1,0 +1,81 @@
+/* Global Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+    color: #E0E0E0;
+}
+
+/* Background */
+.stApp {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* Glassmorphism Cards */
+div[data-testid="stExpander"], div[data-testid="stChatInput"], .stChatMessage {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: rgba(15, 23, 42, 0.9);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Buttons */
+.stButton > button {
+    background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Inputs */
+.stTextInput > div > div > input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 8px;
+}
+
+/* Headers */
+h1, h2, h3 {
+    color: #F8FAFC;
+    font-weight: 700;
+}
+
+/* Success/Error/Info Messages */
+.stSuccess, .stError, .stInfo, .stWarning {
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(5px);
+    border-radius: 8px;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: #94a3b8;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: #3b82f6;
+    color: white;
+}

@@ -17,8 +17,8 @@ except ImportError:
     USE_LANGGRAPH = False
 
 # --- ABSOLUTE IMPORTS ---
-from utils.database import get_sql_database
-from config.config import LLM_MODEL, LLM_TEMPERATURE
+from telecom_assistant.utils.database import get_sql_database
+from telecom_assistant.config.config import LLM_MODEL, LLM_TEMPERATURE
 # ------------------------
 
 # Define a prompt template for service recommendations
@@ -28,9 +28,19 @@ When recommending plans, consider:
 2. Number of people/devices that will use the plan
 3. Special requirements (international calling, streaming, etc.)
 4. Budget constraints
-Always explain WHY a particular plan is a good fit for their needs.
+
+**RESPONSE GUIDELINES:**
+- **Be Extensive**: Provide detailed explanations for your recommendations.
+- **Show Reasoning**: Explain *why* a plan is a good fit based on the user's specific usage data.
+- **Compare Options**: If applicable, compare the recommended plan with others to show value.
+- **Be Helpful**: Offer tips on how to optimize usage or save money.
+- **Do NOT be brief**: The user wants a comprehensive answer.
 
 You have access to a database with plan information. Use it to find available plans.
+
+**Database Schema:**
+- Table `service_plans`: plan_id (VARCHAR), name (VARCHAR), monthly_cost (DECIMAL), data_limit_gb (INT), voice_minutes (INT), sms_count (INT), description (TEXT)
+- Table `customer_usage`: usage_id (VARCHAR), customer_id (VARCHAR), data_used_gb (DECIMAL), voice_minutes_used (INT), sms_count_used (INT)
 
 User query: {input}
 """
@@ -69,20 +79,27 @@ def create_service_agent():
         agent = create_react_agent(llm, tools, prompt)
         return AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
 
-def process_recommendation_query(query):
+def process_recommendation_query(query: str, chat_history: list = []) -> str:
     """Process a service recommendation query using the LangChain agent"""
     try:
         executor = create_service_agent()
         
+        # Format history
+        context = ""
+        if chat_history:
+            context = "Previous Conversation:\n" + "\n".join([f"{msg['role']}: {msg['content']}" for msg in chat_history[-3:]]) + "\n\n"
+            
+        full_query = context + query
+
         if USE_LANGGRAPH:
             # New LangGraph Syntax
             from langchain_core.messages import HumanMessage
-            result = executor.invoke({"messages": [HumanMessage(content=query)]})
+            result = executor.invoke({"messages": [HumanMessage(content=full_query)]})
             # Extract the AI's last message content
             return result["messages"][-1].content
         else:
             # Old LangChain Syntax
-            result = executor.invoke({"input": query})
+            result = executor.invoke({"input": full_query})
             return result["output"]
             
     except Exception as e:

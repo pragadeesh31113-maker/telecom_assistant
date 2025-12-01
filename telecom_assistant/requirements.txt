@@ -2,7 +2,7 @@
 streamlit
 pandas
 crewai
-pyautogen
+ag2
 langchain
 langchain-community
 langchain-openai

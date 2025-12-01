@@ -2,10 +2,10 @@ from typing import TypedDict, Dict, Any, List
 from langgraph.graph import StateGraph, END
 
 # --- ABSOLUTE IMPORTS (FIXED) ---
-from agents.billing_agents import process_billing_query
-from agents.network_agents import process_network_query
-from agents.service_agents import process_recommendation_query
-from agents.knowledge_agents import process_knowledge_query
+from telecom_assistant.agents.billing_agents import process_billing_query
+from telecom_assistant.agents.network_agents import process_network_query
+from telecom_assistant.agents.service_agents import process_recommendation_query
+from telecom_assistant.agents.knowledge_agents import process_knowledge_query
 # --------------------------------
 
 # Define the state structure
@@ -28,7 +28,7 @@ def classify_query(state: TelecomAssistantState) -> TelecomAssistantState:
         classification = "service_recommendation"
     elif any(word in query for word in ["configure", "setup", "apn", "volte", "roaming", "troubleshoot", "guide"]):
         classification = "knowledge_retrieval"
-    elif any(word in query for word in ["network", "signal", "connection", "call", "data", "slow", "internet", "5g", "4g"]):
+    elif any(word in query for word in ["network", "signal", "connection", "call", "data", "slow", "internet", "5g", "4g", "outage", "status", "down", "issue", "problem", "ticket"]):
         classification = "network_troubleshooting"
         
     return {**state, "classification": classification}
@@ -49,23 +49,27 @@ def route_query(state: TelecomAssistantState) -> str:
 
 def crew_ai_node(state: TelecomAssistantState) -> TelecomAssistantState:
     query = state["query"]
+    chat_history = state.get("chat_history", [])
     customer_id = state.get("customer_info", {}).get("id", "CUST001")
-    response = process_billing_query(customer_id, query)
+    response = process_billing_query(customer_id, query, chat_history)
     return {**state, "intermediate_responses": {"crew_ai": response}}
 
 def autogen_node(state: TelecomAssistantState) -> TelecomAssistantState:
     query = state["query"]
-    response = process_network_query(query)
+    chat_history = state.get("chat_history", [])
+    response = process_network_query(query, chat_history)
     return {**state, "intermediate_responses": {"autogen": response}}
 
 def langchain_node(state: TelecomAssistantState) -> TelecomAssistantState:
     query = state["query"]
-    response = process_recommendation_query(query)
+    chat_history = state.get("chat_history", [])
+    response = process_recommendation_query(query, chat_history)
     return {**state, "intermediate_responses": {"langchain": response}}
 
 def llamaindex_node(state: TelecomAssistantState) -> TelecomAssistantState:
     query = state["query"]
-    response = process_knowledge_query(query)
+    chat_history = state.get("chat_history", [])
+    response = process_knowledge_query(query, chat_history)
     return {**state, "intermediate_responses": {"llamaindex": response}}
 
 def fallback_handler(state: TelecomAssistantState) -> TelecomAssistantState:

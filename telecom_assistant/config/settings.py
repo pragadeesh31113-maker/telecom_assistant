@@ -5,7 +5,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Data paths
 DATA_DIR = os.path.join(BASE_DIR, "data")
-DB_PATH = os.path.join(DATA_DIR, "telecom.db")
+DB_PATH = os.environ.get("TELECOM_DB_PATH") or os.path.join(DATA_DIR, "telecom.db")
 DOCS_DIR = os.path.join(DATA_DIR, "documents")
 
 # API Keys (loaded from environment)
