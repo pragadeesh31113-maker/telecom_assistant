@@ -14,3 +14,4 @@ sqlalchemy
 openai
 python-dotenv
 watchdog
+plotly

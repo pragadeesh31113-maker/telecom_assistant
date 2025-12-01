@@ -7,148 +7,62 @@ import logging
 import traceback
 from pathlib import Path
 
+# Add project root to path
+root_path = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(root_path))
+
+from telecom_assistant.orchestration.graph import create_graph
+
 # --- CONFIGURATION ---
 nest_asyncio.apply()
 logging.basicConfig(level=logging.INFO)
 
-# --- PATH SETUP ---
-current_file = Path(__file__).resolve()
-project_root = current_file.parent.parent.parent
-sys.path.append(str(project_root))
-
-# --- IMPORTS ---
-try:
-    from telecom_assistant.orchestration.graph import create_graph
-    from telecom_assistant.utils.document_loader import process_uploaded_file
-    from telecom_assistant.utils.auth import authenticate_user, create_user
-except ImportError as e:
-    st.error(f"Critical Import Error: {e}")
-    st.stop()
-
-# --- ASSETS ---
-CSS_FILE = os.path.join(os.path.dirname(__file__), "style.css")
-
-def load_css():
-    with open(CSS_FILE, "r") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-def main():
-    st.set_page_config(page_title="Telecom Service Assistant", page_icon="📞", layout="wide")
-    load_css()
-
-    # --- SESSION STATE ---
-    if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
-    if "user" not in st.session_state:
-        st.session_state.user = None
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-    if "graph" not in st.session_state:
-        with st.spinner("Initializing AI Brain..."):
-            try:
-                st.session_state.graph = create_graph()
-            except Exception as e:
-                st.error(f"Failed to initialize AI: {e}")
-
-    # --- AUTHENTICATION FLOW ---
-    if not st.session_state.authenticated:
-        show_login_signup()
-    else:
-        show_dashboard()
-
-def show_login_signup():
-    st.markdown("<h1 style='text-align: center; margin-bottom: 2rem;'>Telecom Service Assistant</h1>", unsafe_allow_html=True)
+def render_chat_interface(role_name="User"):
+    st.subheader(f"Chat with Support ({role_name})")
     
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        tab1, tab2 = st.tabs(["Login", "Sign Up"])
-        
-        with tab1:
-            with st.form("login_form"):
-                username = st.text_input("Username")
-                password = st.text_input("Password", type="password")
-                submitted = st.form_submit_button("Login", use_container_width=True)
-                
-                if submitted:
-                    user = authenticate_user(username, password)
-                    if user:
-                        st.session_state.authenticated = True
-                        st.session_state.user = user
-                        st.success("Login successful!")
-                        st.rerun()
-                    else:
-                        st.error("Invalid username or password")
-
-        with tab2:
-            with st.form("signup_form"):
-                new_user = st.text_input("Choose Username")
-                new_pass = st.text_input("Choose Password", type="password")
-                confirm_pass = st.text_input("Confirm Password", type="password")
-                role = "Customer" # Default
-                submitted = st.form_submit_button("Sign Up", use_container_width=True)
-                
-                if submitted:
-                    if new_pass != confirm_pass:
-                        st.error("Passwords do not match")
-                    elif len(new_pass) < 4:
-                        st.error("Password must be at least 4 characters")
-                    else:
-                        if create_user(new_user, new_pass, role, customer_id="CUST_NEW"):
-                            st.success("Account created! Please log in.")
-                        else:
-                            st.error("Username already exists")
-
-def show_dashboard():
-    user = st.session_state.user
-    role = user["role"]
+    # Display chat history
+    for message in st.session_state.chat_history:
+        role = message["role"]
+        content = message["content"]
+        # Updated Avatars: 📡 for AI, 🧑‍💼 for User
+        avatar = "🧑‍💼" if role == "user" else "📡"
+        with st.chat_message(role, avatar=avatar):
+            st.write(content)
     
-    # Sidebar
-    with st.sidebar:
-        st.title(f"Welcome, {user['username']}")
-        st.caption(f"Role: {role}")
+    # Chat Input
+    if prompt := st.chat_input("Ask about plans, billing, or technical issues..."):
+        # Add user message
+        st.session_state.chat_history.append({"role": "user", "content": prompt})
+        with st.chat_message("user", avatar="🧑‍💼"):
+            st.write(prompt)
         
-        if st.button("Logout", use_container_width=True):
-            st.session_state.authenticated = False
-            st.session_state.user = None
-            st.session_state.chat_history = []
-            st.rerun()
-            
-    # Main Content
-    if role == "Admin":
-        show_admin_dashboard()
-    else:
-        show_customer_dashboard()
+        # Generate response
+        with st.chat_message("assistant", avatar="📡"):
+            with st.spinner("Thinking..."):
+                # process_query now returns the full state dict
+                execution_result = process_query(prompt, st.session_state.user)
+                
+                if isinstance(execution_result, dict):
+                    final_response = execution_result.get("final_response", "No response generated.")
+                    # Store the full state for the debug tab
+                    st.session_state.last_thought_process = execution_result
+                else:
+                    final_response = execution_result
+                    st.session_state.last_thought_process = {"error": execution_result}
+
+                st.write(final_response)
+        
+        # Add assistant message
+        st.session_state.chat_history.append({"role": "assistant", "content": final_response})
 
 def show_customer_dashboard():
     st.title("Customer Dashboard")
     
-    tab1, tab2, tab3 = st.tabs(["💬 AI Assistant", "📊 My Usage", "📡 Network Status"])
+    # Add a new tab for "Internal Thoughts"
+    tab1, tab2, tab3, tab4 = st.tabs(["💬 AI Assistant", "📊 My Usage", "📡 Network Status", "🧠 Internal Thoughts"])
     
     with tab1:
-        st.subheader("Chat with Support")
-        
-        # Display chat history
-        for message in st.session_state.chat_history:
-            role = message["role"]
-            content = message["content"]
-            with st.chat_message(role):
-                st.write(content)
-        
-        # Chat Input
-        if prompt := st.chat_input("Ask about plans, billing, or technical issues..."):
-            # Add user message
-            st.session_state.chat_history.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.write(prompt)
-            
-            # Generate response
-            with st.chat_message("assistant"):
-                with st.spinner("Thinking..."):
-                    response = process_query(prompt, st.session_state.user)
-                    st.write(response)
-            
-            # Add assistant message
-            st.session_state.chat_history.append({"role": "assistant", "content": response})
+        render_chat_interface("Customer")
 
     with tab2:
         st.subheader("Current Usage")
@@ -164,26 +78,109 @@ def show_customer_dashboard():
         st.success("✅ All Systems Operational in your area (Mumbai)")
         st.map(pd.DataFrame({'lat': [19.0760], 'lon': [72.8777]}))
 
+    with tab4:
+        st.subheader("🧠 Internal Logic & Flow")
+        if "last_thought_process" in st.session_state and st.session_state.last_thought_process:
+            state = st.session_state.last_thought_process
+            
+            # 1. Classification
+            st.markdown("### 1. Classification")
+            classification = state.get("classification", "Unknown")
+            st.info(f"Query Classified As: **{classification}**")
+            
+            # 2. Routing
+            st.markdown("### 2. Routing")
+            if classification == "billing_account":
+                st.success("Routed to: **Billing Crew (CrewAI)**")
+            elif classification == "network_troubleshooting":
+                st.success("Routed to: **Network Specialist (AutoGen)**")
+            elif classification == "service_recommendation":
+                st.success("Routed to: **Service Advisor (LangChain)**")
+            elif classification == "knowledge_retrieval":
+                st.success("Routed to: **Knowledge Base (LlamaIndex)**")
+            else:
+                st.warning("Routed to: **Fallback Handler**")
+                
+            # 3. Intermediate Output
+            st.markdown("### 3. Agent Output (Raw)")
+            intermediate = state.get("intermediate_responses", {})
+            st.json(intermediate)
+            
+            # 4. Full State Dump
+            with st.expander("View Full State JSON"):
+                st.json(state)
+        else:
+            st.info("Ask a question in the Chat tab to see the internal thought process here.")
+
 def show_admin_dashboard():
+    try:
+        import plotly.express as px
+        import plotly.graph_objects as go
+    except ImportError:
+        st.error("Plotly is not installed. Please install it using `pip install plotly`.")
+        return
+
     st.title("Admin Dashboard")
     
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total Users", "1,245", "+12%")
-    col2.metric("Active Tickets", "45", "-5%")
-    col3.metric("System Health", "98.5%", "Stable")
+    # Admin Navigation
+    with st.sidebar:
+        st.markdown("---")
+        admin_page = st.radio("Navigate", ["Overview", "Analytics", "System Health", "AI Assistant"])
     
-    st.subheader("System Logs")
-    st.code("INFO: User login success (admin)\nINFO: Database backup completed\nWARN: High latency in region-east", language="log")
-    
-    st.subheader("Manage Knowledge Base")
-    uploaded_file = st.file_uploader("Upload Policy Documents (PDF/MD)", type=['pdf', 'md', 'txt'])
-    if uploaded_file:
-        if st.button("Process Document"):
-            with st.spinner("Indexing..."):
-                if process_uploaded_file(uploaded_file):
-                    st.success("Document added to Knowledge Base!")
-                else:
-                    st.error("Failed to process document.")
+    if admin_page == "Overview":
+        st.header("Overview")
+        # Top Metrics
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Total Users", "1,245", "+12%")
+        col2.metric("Active Tickets", "45", "-5%")
+        col3.metric("Avg Response Time", "1.2s", "-0.3s")
+        col4.metric("System Health", "98.5%", "Stable")
+        
+        st.markdown("### Recent System Logs")
+        st.code("INFO: User login success (admin)\nINFO: Database backup completed\nWARN: High latency in region-east\nINFO: New plan 'Premium 5G' added", language="log")
+
+    elif admin_page == "Analytics":
+        st.header("Analytics")
+        # Charts Row 1
+        col_chart1, col_chart2 = st.columns(2)
+        
+        with col_chart1:
+            st.subheader("User Growth (Last 6 Months)")
+            data_growth = pd.DataFrame({
+                "Month": ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+                "Users": [800, 950, 1020, 1100, 1180, 1245]
+            })
+            fig_growth = px.area(data_growth, x="Month", y="Users", template="plotly_dark")
+            fig_growth.update_traces(line_color='#3b82f6', fillcolor='rgba(59, 130, 246, 0.3)')
+            st.plotly_chart(fig_growth, use_container_width=True)
+
+        with col_chart2:
+            st.subheader("Ticket Distribution")
+            data_tickets = pd.DataFrame({
+                "Category": ["Network", "Billing", "Service", "Technical"],
+                "Count": [35, 25, 15, 25]
+            })
+            fig_tickets = px.pie(data_tickets, values="Count", names="Category", hole=0.4, template="plotly_dark")
+            fig_tickets.update_traces(textposition='inside', textinfo='percent+label')
+            st.plotly_chart(fig_tickets, use_container_width=True)
+
+    elif admin_page == "System Health":
+        st.header("System Health & Knowledge Base")
+        col_kb, col_dummy = st.columns([1, 1])
+        
+        with col_kb:
+            st.subheader("Manage Knowledge Base")
+            uploaded_file = st.file_uploader("Upload Policy Documents (PDF/MD)", type=['pdf', 'md', 'txt'])
+            if uploaded_file:
+                if st.button("Process Document"):
+                    with st.spinner("Indexing..."):
+                        if process_uploaded_file(uploaded_file):
+                            st.success("Document added to Knowledge Base!")
+                        else:
+                            st.error("Failed to process document.")
+                            
+    elif admin_page == "AI Assistant":
+        render_chat_interface("Admin")
 
 def process_query(query, user_info):
     """Process query using the AI Graph"""
@@ -200,11 +197,76 @@ def process_query(query, user_info):
     }
     
     try:
+        # Return the full dict result, not just the string
         result = st.session_state.graph.invoke(state)
-        return result.get("final_response", "I couldn't generate a response.")
+        return result
     except Exception as e:
         traceback.print_exc()
         return f"Error processing query: {str(e)}"
+
+def process_uploaded_file(file):
+    # Placeholder for file processing
+    return True
+
+def main():
+    # Initialize Session State
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+    if "user" not in st.session_state:
+        st.session_state.user = None
+    
+    # Initialize AI Graph
+    if "graph" not in st.session_state:
+        try:
+            st.session_state.graph = create_graph()
+            logging.info("AI Graph initialized successfully.")
+        except Exception as e:
+            st.error(f"Failed to initialize AI Brain: {str(e)}")
+            logging.error(f"Graph initialization failed: {traceback.format_exc()}")
+            st.session_state.graph = None
+
+    # Login Screen
+    if not st.session_state.authenticated:
+        st.title("Nexus Telecom Portal")
+        st.subheader("Please Login")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Login as Customer (John Doe)", use_container_width=True):
+                st.session_state.user = {"username": "John Doe", "role": "Customer", "customer_id": "CUST001"}
+                st.session_state.authenticated = True
+                st.rerun()
+                
+        with col2:
+            if st.button("Login as Admin", use_container_width=True):
+                st.session_state.user = {"username": "System Admin", "role": "Admin", "customer_id": "ADM001"}
+                st.session_state.authenticated = True
+                st.rerun()
+        return
+
+    user = st.session_state.user
+    role = user.get("role", "Customer")
+
+    # Sidebar
+    with st.sidebar:
+        st.title(f"Nexus Telecom")
+        st.caption(f"Welcome, {user['username']}")
+        st.caption(f"Role: {role}")
+        
+        if st.button("Logout", use_container_width=True):
+            st.session_state.authenticated = False
+            st.session_state.user = None
+            st.session_state.chat_history = []
+            st.session_state.last_thought_process = None # Clear thought process on logout
+            st.rerun()
+            
+    # Main Content
+    if role == "Admin":
+        show_admin_dashboard()
+    else:
+        show_customer_dashboard()
 
 if __name__ == "__main__":
     main()

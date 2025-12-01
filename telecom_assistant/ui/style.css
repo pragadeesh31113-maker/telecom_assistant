@@ -1,81 +1,188 @@
-/* Global Styles */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+/* --- VARIABLES & THEME --- */
+:root {
+    --bg-color: #0e1117;
+    /* Deep matte black/gray */
+    --card-bg: rgba(255, 255, 255, 0.03);
+    /* Very subtle glass */
+    --sidebar-bg: #161b22;
+    --accent-color: #3b82f6;
+    /* Standard professional blue */
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --border-color: rgba(255, 255, 255, 0.05);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.05);
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --font-family: 'Inter', sans-serif;
 
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-    color: #E0E0E0;
+    /* Chat Specifics */
+    --chat-user-bg: rgba(59, 130, 246, 0.15);
+    /* Subtle blue tint for user */
+    --chat-bot-bg: rgba(255, 255, 255, 0.05);
+    /* Dark gray for bot */
 }
 
-/* Background */
+/* --- GLOBAL STYLES --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+html,
+body,
+[class*="css"] {
+    font-family: var(--font-family);
+    color: var(--text-primary);
+    background-color: var(--bg-color);
+}
+
 .stApp {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    background-color: var(--bg-color);
+    background-image: none;
 }
 
-/* Glassmorphism Cards */
-div[data-testid="stExpander"], div[data-testid="stChatInput"], .stChatMessage {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+/* --- TYPOGRAPHY --- */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--text-primary);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+h1 {
+    background: none;
+    -webkit-text-fill-color: var(--text-primary);
+    padding-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+p,
+.stMarkdown {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+/* --- COMPONENTS --- */
+
+/* Cards */
+div[data-testid="stExpander"],
+div[data-testid="stChatInput"],
+div[data-testid="stMetricValue"] {
+    background: var(--card-bg);
+    backdrop-filter: blur(0px);
+    border: var(--glass-border);
+    border-radius: 8px;
+    box-shadow: none;
 }
 
 /* Sidebar */
 section[data-testid="stSidebar"] {
-    background: rgba(15, 23, 42, 0.9);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--sidebar-bg);
+    border-right: var(--glass-border);
 }
 
 /* Buttons */
-.stButton > button {
-    background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+.stButton>button {
+    background: var(--accent-color);
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 0.5rem 1rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
+    font-weight: 500;
+    box-shadow: none;
+    transition: background-color 0.2s ease;
 }
 
-.stButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+.stButton>button:hover {
+    background: #2563eb;
 }
 
 /* Inputs */
-.stTextInput > div > div > input {
-    background: rgba(255, 255, 255, 0.05);
+.stTextInput>div>div>input,
+.stTextArea>div>div>textarea {
+    background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
-    border-radius: 8px;
+    color: var(--text-primary);
+    border-radius: 6px;
 }
 
-/* Headers */
-h1, h2, h3 {
-    color: #F8FAFC;
-    font-weight: 700;
-}
-
-/* Success/Error/Info Messages */
-.stSuccess, .stError, .stInfo, .stWarning {
-    background: rgba(255, 255, 255, 0.05) !important;
-    backdrop-filter: blur(5px);
-    border-radius: 8px;
+.stTextInput>div>div>input:focus,
+.stTextArea>div>div>textarea:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 1px var(--accent-color);
 }
 
 /* Tabs */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 8px;
+    gap: 20px;
+    background: transparent;
+    padding-bottom: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .stTabs [data-baseweb="tab"] {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 8px 16px;
-    color: #94a3b8;
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 10px 0;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    color: var(--text-primary);
 }
 
 .stTabs [aria-selected="true"] {
-    background-color: #3b82f6;
-    color: white;
+    background: transparent;
+    color: var(--accent-color);
+    border-bottom: 2px solid var(--accent-color);
+    font-weight: 500;
+}
+
+/* --- CHAT IMPROVEMENTS --- */
+
+/* Chat Message Container */
+.stChatMessage {
+    background-color: transparent;
+    border: none;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+}
+
+/* User Message */
+.stChatMessage[data-testid="stChatMessage"]:nth-child(odd) {
+    background-color: var(--chat-user-bg);
+    border-left: 3px solid var(--accent-color);
+}
+
+/* Assistant Message */
+.stChatMessage[data-testid="stChatMessage"]:nth-child(even) {
+    background-color: var(--chat-bot-bg);
+    border-left: 3px solid #10b981;
+    /* Green accent for bot */
+}
+
+/* Avatar Styling */
+.stChatMessage .stChatMessageAvatar {
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Chat Input Area */
+div[data-testid="stChatInput"] {
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #0d1117;
+}
+
+/* JSON Viewer */
+.stJson {
+    background: #0d1117;
+    border-radius: 6px;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }

@@ -1,12 +1,12 @@
 from typing import TypedDict, Dict, Any, List
 from langgraph.graph import StateGraph, END
 
-# --- ABSOLUTE IMPORTS (FIXED) ---
+# --- ABSOLUTE IMPORTS ---
 from telecom_assistant.agents.billing_agents import process_billing_query
 from telecom_assistant.agents.network_agents import process_network_query
 from telecom_assistant.agents.service_agents import process_recommendation_query
 from telecom_assistant.agents.knowledge_agents import process_knowledge_query
-# --------------------------------
+# ------------------------
 
 # Define the state structure
 class TelecomAssistantState(TypedDict):
@@ -22,15 +22,33 @@ def classify_query(state: TelecomAssistantState) -> TelecomAssistantState:
     query = state["query"].lower()
     
     classification = "fallback_handler"
-    if any(word in query for word in ["bill", "charge", "payment", "account", "invoice", "cost"]):
-        classification = "billing_account"
-    elif any(word in query for word in ["plan", "recommend", "best", "upgrade", "family", "switch"]):
-        classification = "service_recommendation"
-    elif any(word in query for word in ["configure", "setup", "apn", "volte", "roaming", "troubleshoot", "guide"]):
+    
+    # 1. Knowledge/Procedural Queries (Priority: "How to", "Steps", "Guide")
+    # Added "what to do", "what should i do", "what can i do" to catch general troubleshooting questions
+    if any(phrase in query for phrase in ["how to", "how do i", "steps to", "procedure", "guide", "configure", "setup", "apn", "troubleshoot", "what to do", "what should i do", "what can i do"]):
         classification = "knowledge_retrieval"
+        
+    # 2. Billing & Account
+    elif any(word in query for word in ["bill", "charge", "payment", "account", "invoice", "cost", "usage", "balance"]):
+        classification = "billing_account"
+        
+    # 3. Service Recommendations (Plan advice, but NOT "how to change")
+    elif any(word in query for word in ["recommend", "best plan", "cheapest", "upgrade", "new plan", "compare"]):
+        classification = "service_recommendation"
+        
+    # 4. Network Issues
     elif any(word in query for word in ["network", "signal", "connection", "call", "data", "slow", "internet", "5g", "4g", "outage", "status", "down", "issue", "problem", "ticket"]):
         classification = "network_troubleshooting"
         
+    # 5. Specific "Change Plan" ambiguity handling
+    elif "plan" in query:
+        if "change" in query or "switch" in query:
+             # "How to change plan" -> Knowledge
+             classification = "knowledge_retrieval" 
+        else:
+            # "Recommend a plan" -> Service
+            classification = "service_recommendation"
+
     return {**state, "classification": classification}
 
 def route_query(state: TelecomAssistantState) -> str:
@@ -63,7 +81,8 @@ def autogen_node(state: TelecomAssistantState) -> TelecomAssistantState:
 def langchain_node(state: TelecomAssistantState) -> TelecomAssistantState:
     query = state["query"]
     chat_history = state.get("chat_history", [])
-    response = process_recommendation_query(query, chat_history)
+    customer_id = state.get("customer_info", {}).get("id", "CUST001")
+    response = process_recommendation_query(customer_id, query, chat_history)
     return {**state, "intermediate_responses": {"langchain": response}}
 
 def llamaindex_node(state: TelecomAssistantState) -> TelecomAssistantState:
